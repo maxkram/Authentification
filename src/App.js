@@ -3,49 +3,28 @@ import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 import SiteHeader from "./components/SiteHeader";
 import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
+import PrivateRoute from "./components/PrivateRoute";
 import "./App.css";
-import createAuth0Client from "@auth0/auth0-spa-js";
-
-useEffect(() => {
-  initAuth0();
-
-  async function initAuth0() {
-    const auth0 = await createAuth0Client({
-      domain: "maxkram.auth0.com",
-      client_id: "QVfF3pEhiBNNSruOWWnf2phnuWrkTRTV",
-      redirect_uri: window.location.origin,
-    });
-    setAuth0Client(auth0);
-
-    // handle redirect when user comes back
-    if (
-      window.location.search.includes("code=") &&
-      window.location.search.includes("state=")
-    ) {
-      try {
-        await auth0.handleRedirectCallback();
-      } catch (err) {
-        alert(err);
-      }
-
-      window.location.replace(window.location.pathname);
-    }
-
-    // is a user authenticated
-    const isAuthenticated = await auth0.isAuthenticated();
-    setIsAuthenticated(isAuthenticated);
-
-    // go grab the user
-    if (isAuthenticated) {
-      const user = await auth0.getUser();
-      setUser(user);
-    }
-
-    setIsLoading(false);
-  }
-}, []);
+import { useAuth0 } from "./contexts/auth0-context";
 
 export default function App() {
+  const { getToken } = useAuth0();
+
+  useEffect(() => {
+    getUserData();
+  }, []);
+
+  async function getUserData() {
+    const token = await getToken();
+
+    const response = await fetch(`http://example.com/api`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json();
+
+    // we have data!
+  }
+
   return (
     <Router>
       <div className='app'>
@@ -54,9 +33,9 @@ export default function App() {
 
         {/* routes */}
         <Switch>
-          <Route path='/dashboard'>
+          <PrivateRoute path='/dashboard'>
             <Dashboard />
-          </Route>
+          </PrivateRoute>
           <Route path='/' exact={true}>
             <Home />
           </Route>
